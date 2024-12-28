@@ -1,4 +1,4 @@
-name: Build ROS2 Rust Project
+name: Build and Test ROS 2 Rust Project
 
 on:
   push:
@@ -9,52 +9,37 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        ros_distro: ["foxy", "humble"]
+        ros_distro: [foxy, humble]
 
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up ROS 2
-        run: |
-          sudo apt update
-          sudo apt install -y software-properties-common
-          sudo add-apt-repository universe
-          sudo apt update
-          sudo apt install -y curl gnupg lsb-release
-
-          # Add ROS 2 apt repository
-          sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
-          echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/ros2-latest.list
-          sudo apt update
-
-          # Install ROS 2 and dependencies
-          sudo apt install -y ros-${{ matrix.ros_distro }}-desktop python3-colcon-common-extensions
-
-      - name: Set up ROS environment
-        run: echo "source /opt/ros/${{ matrix.ros_distro }}/setup.bash" >> $GITHUB_ENV
+      - name: Setup ROS Environment
+        uses: ros-tooling/action-ros-ci@v0.2
+        with:
+          target-ros2-distro: ${{ matrix.ros_distro }}
+          vcs-repo-file-url: "" # Optional: Add if you have a .repos file for additional dependencies
+          workspace-subdirectory: ""
+          colcon-mixins-repo-file-url: "" # Optional: Add mixins if needed
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
           profile: minimal
+          toolchain: stable
+          override: true
 
-      - name: Install ros2_rust dependencies
+      - name: Install ROS 2 Rust Dependencies
         run: |
-          sudo apt install -y ros-${{ matrix.ros_distro }}-std-msgs
+          rustup component add rustfmt
+          rustup target add aarch64-unknown-linux-gnu  # Modify if your target differs
+          cargo install --git https://github.com/ros2-rust/ros2_rust.git
 
-      - name: Build Rust project
-        run: |
-          source /opt/ros/${{ matrix.ros_distro }}/setup.bash
-          export RUSTFLAGS="--cfg=rclrs"
-          cargo build --verbose
+      - name: Build Project
+        run: cargo build --release
 
-      - name: Test ROS 2 Node
-        run: |
-          source /opt/ros/${{ matrix.ros_distro }}/setup.bash
-          cargo test
-
+      - name: Run Tests
+        run: cargo test
