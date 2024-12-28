@@ -1,0 +1,9 @@
+[package]
+name = "ydlidar-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ros2_rust = "*"
+rclrs = "*"
+std_msgs = "*"      # For basic message types
