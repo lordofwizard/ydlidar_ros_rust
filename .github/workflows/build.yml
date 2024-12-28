@@ -23,7 +23,13 @@ jobs:
           target-ros2-distro: ${{ matrix.ros_distro }}
           vcs-repo-file-url: "" # Optional: Add if you have a .repos file for additional dependencies
           workspace-subdirectory: ""
-          colcon-mixins-repo-file-url: "" # Optional: Add mixins if needed
+
+      - name: Install ROS Dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y python3-rosdep python3-vcstool
+          sudo rosdep init
+          rosdep update
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
